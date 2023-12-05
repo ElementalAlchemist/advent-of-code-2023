@@ -14,7 +14,7 @@ enum ParseLocation {
 	HumidityLocation,
 }
 
-fn map_num(map: &[(Range<u64>, u64)], input: u64) -> u64 {
+fn map_num(map: &[(Range<i64>, i64)], input: i64) -> i64 {
 	for (start_range, modify_by) in map.iter() {
 		if start_range.contains(&input) {
 			return input + modify_by;
@@ -26,14 +26,14 @@ fn map_num(map: &[(Range<u64>, u64)], input: u64) -> u64 {
 fn main() -> Result<(), Box<dyn Error>> {
 	let input = fs::read_to_string("input.txt")?;
 
-	let mut seeds: Vec<Range<u64>> = Vec::new();
-	let mut seed_soil_map: Vec<(Range<u64>, u64)> = Vec::new();
-	let mut soil_fertilizer_map: Vec<(Range<u64>, u64)> = Vec::new();
-	let mut fertilizer_water_map: Vec<(Range<u64>, u64)> = Vec::new();
-	let mut water_light_map: Vec<(Range<u64>, u64)> = Vec::new();
-	let mut light_temperature_map: Vec<(Range<u64>, u64)> = Vec::new();
-	let mut temperature_humidity_map: Vec<(Range<u64>, u64)> = Vec::new();
-	let mut humidity_location_map: Vec<(Range<u64>, u64)> = Vec::new();
+	let mut seeds: Vec<Range<i64>> = Vec::new();
+	let mut seed_soil_map: Vec<(Range<i64>, i64)> = Vec::new();
+	let mut soil_fertilizer_map: Vec<(Range<i64>, i64)> = Vec::new();
+	let mut fertilizer_water_map: Vec<(Range<i64>, i64)> = Vec::new();
+	let mut water_light_map: Vec<(Range<i64>, i64)> = Vec::new();
+	let mut light_temperature_map: Vec<(Range<i64>, i64)> = Vec::new();
+	let mut temperature_humidity_map: Vec<(Range<i64>, i64)> = Vec::new();
+	let mut humidity_location_map: Vec<(Range<i64>, i64)> = Vec::new();
 
 	let mut parse_location = ParseLocation::Seeds;
 	for line in input.lines().filter(|s| !s.is_empty()) {
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 						.unwrap()
 						.split(' ')
 						.fold(None, |prev, seed_step| {
-							let seed_step: u64 = seed_step.parse().unwrap();
+							let seed_step: i64 = seed_step.parse().unwrap();
 							match prev {
 								Some(seed) => {
 									seeds.push(seed..(seed + seed_step));
@@ -63,12 +63,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 					continue;
 				}
 				let mut number_iter = line.split(' ').map(|n| n.parse().unwrap());
-				let destination: u64 = number_iter.next().unwrap();
-				let start: u64 = number_iter.next().unwrap();
-				let range: u64 = number_iter.next().unwrap();
+				let destination: i64 = number_iter.next().unwrap();
+				let start: i64 = number_iter.next().unwrap();
+				let range: i64 = number_iter.next().unwrap();
 				assert!(number_iter.next().is_none());
 
-				let modify_by = destination - start;
+				let modify_by = start - destination;
 
 				let map_ref = match parse_location {
 					ParseLocation::Seeds => unreachable!(),
@@ -80,26 +80,31 @@ fn main() -> Result<(), Box<dyn Error>> {
 					ParseLocation::TempHumidity => &mut temperature_humidity_map,
 					ParseLocation::HumidityLocation => &mut humidity_location_map,
 				};
-				map_ref.push((start..(start + range), modify_by));
+				map_ref.push((destination..(destination + range), modify_by));
 			}
 		}
 	}
 
-	let mut closest_location = u64::MAX;
-	for seed_range in seeds {
-		for seed in seed_range {
-			let soil = map_num(&seed_soil_map, seed);
-			let fertilizer = map_num(&soil_fertilizer_map, soil);
-			let water = map_num(&fertilizer_water_map, fertilizer);
-			let light = map_num(&water_light_map, water);
-			let temperature = map_num(&light_temperature_map, light);
-			let humidity = map_num(&temperature_humidity_map, temperature);
-			let location = map_num(&humidity_location_map, humidity);
-			closest_location = closest_location.min(location);
+	let mut current_location = 0;
+	'location: loop {
+		let humidity = map_num(&humidity_location_map, current_location);
+		let temperature = map_num(&temperature_humidity_map, humidity);
+		let light = map_num(&light_temperature_map, temperature);
+		let water = map_num(&water_light_map, light);
+		let fertilizer = map_num(&fertilizer_water_map, water);
+		let soil = map_num(&soil_fertilizer_map, fertilizer);
+		let seed = map_num(&seed_soil_map, soil);
+
+		for seed_range in seeds.iter() {
+			if seed_range.contains(&seed) {
+				break 'location;
+			}
 		}
+
+		current_location += 1;
 	}
 
-	println!("{}", closest_location);
+	println!("{}", current_location);
 
 	Ok(())
 }
