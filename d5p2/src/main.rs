@@ -15,10 +15,9 @@ enum ParseLocation {
 }
 
 fn map_num(map: &[(Range<u64>, u64)], input: u64) -> u64 {
-	for (start_range, dest_start) in map.iter() {
+	for (start_range, modify_by) in map.iter() {
 		if start_range.contains(&input) {
-			let difference = input - start_range.start;
-			return dest_start + difference;
+			return input + modify_by;
 		}
 	}
 	input
@@ -69,6 +68,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 				let range: u64 = number_iter.next().unwrap();
 				assert!(number_iter.next().is_none());
 
+				let modify_by = destination - start;
+
 				let map_ref = match parse_location {
 					ParseLocation::Seeds => unreachable!(),
 					ParseLocation::SeedSoil => &mut seed_soil_map,
@@ -79,7 +80,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 					ParseLocation::TempHumidity => &mut temperature_humidity_map,
 					ParseLocation::HumidityLocation => &mut humidity_location_map,
 				};
-				map_ref.push((start..(start + range), destination));
+				map_ref.push((start..(start + range), modify_by));
 			}
 		}
 	}
